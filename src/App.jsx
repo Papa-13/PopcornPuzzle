@@ -274,9 +274,25 @@ export default function WordSearch(){
   const accentColor=show?.accent||'#C8900A';
   const dk=darkMode;
   const gridSize=diffCfg?.gridSize||16;
-  const availW=isMobile?winW-24:isTablet?Math.min(winW*0.55,420):Math.min(winW*0.45,460);
-  const cellPx=Math.floor(availW/gridSize);
-  const fs=Math.max(10,Math.floor(cellPx*0.52))+'px';
+
+  // Precise cell sizing — subtract every pixel that wraps the grid so it never clips
+  // pagePad: horizontal page padding (both sides)
+  // gridBorder: 2px border × 2 sides = 4px
+  // gridPad: internal grid padding × 2 sides
+  // gapTotal: 2px gap × (gridSize - 1) columns
+  // safetyPx: a few extra pixels so nothing kisses the edge
+  const pagePad   = isMobile ? 16 : isTablet ? 24 : 28;
+  const gridBorder = 4;
+  const gridPadPx  = isMobile ? 10 : 14;
+  const gapPx      = 2;
+  const safetyPx   = isMobile ? 6 : 4;
+  const cellsAvailW = winW - pagePad - gridBorder - gridPadPx - gapPx*(gridSize-1) - safetyPx;
+  const cellPx = isMobile
+    ? Math.floor(cellsAvailW / gridSize)
+    : isTablet
+      ? Math.min(Math.floor((winW*0.55 - gridBorder - gridPadPx - gapPx*(gridSize-1)) / gridSize), 26)
+      : Math.min(Math.floor((Math.min(winW*0.46,480) - gridBorder - gridPadPx - gapPx*(gridSize-1)) / gridSize), 28);
+  const fs=Math.max(9,Math.floor(cellPx*0.54))+'px';
 
   const T=dk?{
     pageBg:screen==='game'?(show?.bg||'#0a0a0a'):'#0a0a0a',
@@ -388,10 +404,10 @@ export default function WordSearch(){
   const Footer=()=>(<div style={{textAlign:'center',marginTop:isMobile?16:24,fontFamily:"'Crimson Text',serif",fontSize:'0.6rem',color:T.faint,letterSpacing:'0.1em'}}>PopcornPuzzle · Produced by Papa Bona Owusu</div>);
 
   return (
-    <div style={{minHeight:'100vh',background:T.pageBg,fontFamily:"'Georgia',serif",color:T.text,display:'flex',flexDirection:'column',alignItems:'center',transition:'background 0.35s,color 0.25s',padding:isMobile?'0 8px 28px':'0 14px 36px',overflowX:'hidden'}}>
+    <div style={{minHeight:'100vh',background:T.pageBg,fontFamily:"'Georgia',serif",color:T.text,display:'flex',flexDirection:'column',alignItems:'center',transition:'background 0.35s,color 0.25s',padding:isMobile?'0 8px 28px':'0 14px 36px',overflowX:'hidden',width:'100%',maxWidth:'100vw'}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
-        html,body{margin:0;padding:0;-webkit-tap-highlight-color:transparent;}*{box-sizing:border-box;}
+        html,body{margin:0;padding:0;-webkit-tap-highlight-color:transparent;overflow-x:hidden;width:100%;}*{box-sizing:border-box;}
         ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:${T.scrollTrack};}::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px;}
         .cine-cell{display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-family:'Crimson Text',serif;font-weight:800;border-radius:3px;transition:background 0.07s,color 0.07s;}
         .cine-cell:hover{background:${T.cellHover};}
@@ -482,7 +498,7 @@ export default function WordSearch(){
 
       {/* ══ GAME ══ */}
       {screen==='game'&&show&&gameData&&diffCfg&&(
-        <div style={{width:'100%',maxWidth:1100,animation:'fadeIn 0.4s ease'}}>
+        <div style={{width:'100%',maxWidth:1100,animation:'fadeIn 0.4s ease',overflow:'hidden'}}>
           <div style={{display:'flex',alignItems:'center',gap:8,padding:isMobile?'12px 0 8px':'18px 0 10px'}}>
             <button onClick={()=>{clearInterval(timerRef.current);setScreen('picker');}} style={{background:T.btnBg,border:'1px solid '+T.btnBorder,color:T.btnText,padding:isMobile?'6px 10px':'6px 14px',borderRadius:8,cursor:'pointer',fontFamily:"'Crimson Text',serif",fontSize:isMobile?'0.8rem':'0.88rem',whiteSpace:'nowrap',flexShrink:0}}>
               ← {isMobile?'Back':'PopcornPuzzle'}
@@ -515,7 +531,7 @@ export default function WordSearch(){
             <div style={{position:'relative',display:'flex',justifyContent:isMobile?'center':'flex-start',flexShrink:0,width:isMobile?'100%':'auto'}}>
               {penaltyMsg&&(<div style={{position:'absolute',top:'50%',left:'50%',zIndex:10,fontFamily:"'Cinzel',serif",fontSize:isMobile?'1.6rem':'2rem',fontWeight:900,color:'#E74C3C',textShadow:'0 0 20px rgba(231,76,60,0.8)',pointerEvents:'none',animation:'penaltyFade 0.9s ease forwards'}}>{penaltyMsg}</div>)}
               <div ref={gridContRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-                style={{display:'grid',gridTemplateColumns:'repeat('+gridSize+', '+cellPx+'px)',gap:2,background:T.gridBg,border:'2px solid '+accentColor+'66',borderRadius:12,padding:isMobile?5:7,touchAction:'none',boxShadow:'0 0 32px '+accentColor+(dk?'25':'33')}}>
+                style={{display:'grid',gridTemplateColumns:'repeat('+gridSize+', '+cellPx+'px)',gap:gapPx+'px',background:T.gridBg,border:'2px solid '+accentColor+'66',borderRadius:12,padding:(gridPadPx/2)+'px',touchAction:'none',boxShadow:'0 0 32px '+accentColor+(dk?'25':'33'),flexShrink:0}}>
                 {gameData.grid.map((row,r)=>row.map((ch,c)=>{
                   const key=cellKey(r,c);
                   const isFound=foundCellMap.has(key),isSel=selCellSet.has(key),isFlash=flashSet.has(key);
